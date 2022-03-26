@@ -354,10 +354,7 @@ class Citizen:
             return []
         else:
             for subordinate in self._subordinates:
-                if subordinate._subordinates[0] > self._subordinates[-1]:
-                    all_subordinates = merge(self._subordinates, subordinate.get_all_subordinates())
-                else:
-                    all_subordinates = merge(subordinate.get_all_subordinates(), self._subordinates)
+                all_subordinates = merge(self._subordinates, subordinate.get_all_subordinates())
                 return all_subordinates
 
     def get_society_head(self) -> Citizen:
