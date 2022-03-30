@@ -219,15 +219,21 @@ class Citizen:
         if not self._subordinates:
             self._subordinates.append(subordinate)
 
-        # if all ids in the list are smaller than subordinate's id, append subordinate
+        # if all ids in the list are smaller than subordinate's id,
+        # append subordinate
         elif self._subordinates[-1].cid < subordinate.cid:
             self._subordinates.append(subordinate)
 
-        # else, insert subordinate in the correct order (bigger cid subordinate, subordinate, smaller cid subordinate)
+        # else, insert subordinate in the correct order (bigger cid subordinate,
+        # subordinate, smaller cid subordinate)
         else:
-            for i in range(len(self._subordinates)):
-                if self._subordinates[i].cid < subordinate.cid < self._subordinates[i+1].cid:
-                    self._subordinates.insert(i+1, subordinate)
+            if self._subordinates[0].cid > subordinate.cid:
+                self._subordinates.insert(0, subordinate)
+            else:
+                for i in range(len(self._subordinates)):
+                    if self._subordinates[i].cid < subordinate.cid < \
+                            self._subordinates[i+1].cid:
+                        self._subordinates.insert(i+1, subordinate)
 
     def remove_subordinate(self, cid: int) -> None:
         """Remove the subordinate with the ID <cid> from this Citizen's list
@@ -249,7 +255,8 @@ class Citizen:
         >>> c1.get_superior() is None
         True
         """
-        # loop through self._subordinates and fine the subordinate with the correct cid
+        # loop through self._subordinates and fine the subordinate
+        # with the correct cid
         for i in range(len(self._subordinates)):
             if self._subordinates[i].cid == cid:
 
@@ -279,9 +286,11 @@ class Citizen:
         >>> c2.get_direct_subordinates()
         []
         """
+        # CAN SIMPLIFY
         if superior is None:
 
-            # remove self from original superior's subordinates list if it has a superior already.
+            # remove self from original superior's subordinates
+            # list if it has a superior already.
             if self._superior:
                 self._superior.remove_subordinate(self.cid)
 
@@ -290,12 +299,14 @@ class Citizen:
 
         # if superior is not None
         else:
-            # if self already has a superior, remove self from the old superior's subordinates list.
+            # if self already has a superior, remove self from the old
+            # superior's subordinates list.
             if self._superior is not None:
-                superior.remove_subordinate(self.cid)
-            # Then, set new superior as self's superior. Append self to new superior's subordinates list.
+                self._superior.remove_subordinate(self.cid)
+            # Then, set new superior as self's superior. Append self
+            # to new superior's subordinates list.
             self._superior = superior
-            superior._subordinates.append(self)
+            superior.add_subordinate(self)
 
     def get_citizen(self, cid: int) -> Optional[Citizen]:
         """Check this Citizen and its subordinates to find and return the
@@ -321,7 +332,8 @@ class Citizen:
             for subordinate in self._subordinates:
                 return subordinate.get_citizen(cid)
 
-            # if cid is does not match self or any of its subordinate's cid, return None
+            # if cid is does not match self or any of its
+            # subordinate's cid, return None
             return None
 
     ###########################################################################
@@ -332,17 +344,21 @@ class Citizen:
         """Return a new list of all of the subordinates of this Citizen in
         order of ascending IDs.
 
-        >>> c1 = Citizen(1, "Starky Industries", 3024, "Labourer", 50)
+        >>> c1 = Citizen(6, "Starky Industries", 3024, "Labourer", 50)
         >>> c2 = Citizen(2, "Hookins National Lab", 3024, "Manager", 30)
-        >>> c3 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c4 = Citizen(4, "Starky Industries", 3024, "Labourer", 50)
-        >>> c4.become_subordinate_to(c2)
-        >>> c1.become_subordinate_to(c2)
-        >>> c2.become_subordinate_to(c3)
-        >>> c3.get_all_subordinates()[0].cid
-        1
-        >>> c3.get_all_subordinates()[1].cid
-        2
+        >>> c3 = Citizen(5, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c4 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c5 = Citizen(8, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c6 = Citizen(7, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c7 = Citizen(9, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c6.become_subordinate_to(c3)
+        >>> c7.become_subordinate_to(c3)
+        >>> c3.become_subordinate_to(c1)
+        >>> c4.become_subordinate_to(c1)
+        >>> c2.become_subordinate_to(c1)
+        >>> c5.become_subordinate_to(c1)
+        >>> c1.get_all_subordinates() == [c2, c4, c3, c6, c5, c7]
+        True
         """
         # Note: This method must call itself recursively
 
@@ -353,9 +369,12 @@ class Citizen:
         if not self._subordinates:
             return []
         else:
+            all_subordinates = self._subordinates
             for subordinate in self._subordinates:
-                all_subordinates = merge(self._subordinates, subordinate.get_all_subordinates())
-                return all_subordinates
+                all_subordinates = merge(all_subordinates[:],
+                                         subordinate.get_all_subordinates())
+
+            return all_subordinates
 
     def get_society_head(self) -> Citizen:
         """Return the head of the Society (i.e. the top-most superior Citizen,
@@ -398,7 +417,6 @@ class Citizen:
         True
         """
         # Note: This method must call itself recursively
-
         # if this citizen or the citizen being compared is the society head
         if self.get_society_head().cid == self.cid or cid:
             return self.get_society_head()
@@ -563,11 +581,13 @@ class Society:
         if not all_citizens:
             all_citizens.append(self._head)
 
-        # if all ids in the list are smaller than self._head id, append self._head
+        # if all ids in the list are smaller than self._head id,
+        # append self._head
         elif all_citizens[-1].cid < self._head.cid:
             all_citizens.append(self._head)
 
-        # else, insert self._head in the correct order (bigger cid , self._head, smaller cid)
+        # else, insert self._head in the correct order (bigger cid
+        # , self._head, smaller cid)
         else:
             for i in range(len(all_citizens)):
                 if all_citizens[i].cid < self._head.cid < all_citizens[i + 1].cid:
@@ -604,13 +624,16 @@ class Society:
         >>> c1.get_superior() is c2
         True
         """
-        # if this citizen does not have superior_id, make it the head of the society
+        # if this citizen does not have superior_id, make it the head
+        # of the society
         if superior_id is None:
 
-            # if the society already has a head, make the old head the subordinate of the citizen.
+            # if the society already has a head, make the old head the
+            # subordinate of the citizen.
             if self._head:
 
-                # The old society head is the ONE AND ONLY subordinate, so first remove all the existing
+                # The old society head is the ONE AND ONLY subordinate,
+                # so first remove all the existing
                 # subordinates for citizen.
                 old_subordinates = citizen.get_all_subordinates()
                 for i in old_subordinates:
