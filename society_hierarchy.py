@@ -344,21 +344,15 @@ class Citizen:
         """Return a new list of all of the subordinates of this Citizen in
         order of ascending IDs.
 
-        >>> c1 = Citizen(6, "Starky Industries", 3024, "Labourer", 50)
+        >>> c1 = Citizen(1, "Starky Industries", 3024, "Labourer", 50)
         >>> c2 = Citizen(2, "Hookins National Lab", 3024, "Manager", 30)
-        >>> c3 = Citizen(5, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c4 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c5 = Citizen(8, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c6 = Citizen(7, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c7 = Citizen(9, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
-        >>> c6.become_subordinate_to(c3)
-        >>> c7.become_subordinate_to(c3)
-        >>> c3.become_subordinate_to(c1)
-        >>> c4.become_subordinate_to(c1)
-        >>> c2.become_subordinate_to(c1)
-        >>> c5.become_subordinate_to(c1)
-        >>> c1.get_all_subordinates() == [c2, c4, c3, c6, c5, c7]
-        True
+        >>> c3 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c1.become_subordinate_to(c2)
+        >>> c2.become_subordinate_to(c3)
+        >>> c3.get_all_subordinates()[0].cid
+        1
+        >>> c3.get_all_subordinates()[1].cid
+        2
         """
         # Note: This method must call itself recursively
 
