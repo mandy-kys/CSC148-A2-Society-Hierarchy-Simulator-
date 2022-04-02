@@ -441,6 +441,10 @@ class Citizen:
         'District A'
         """
         # Note: This method must call itself recursively
+        if not self._superior:
+            return ""
+        else:
+            return self._superior.get_district_name()
 
     def rename_district(self, district_name: str) -> None:
         """Rename the immediate district which this Citizen is a part of to
@@ -459,6 +463,11 @@ class Citizen:
         'District B'
         """
         # Note: This method must call itself recursively
+        if self._superior is not None:
+            if isinstance(self._superior, DistrictLeader):
+                return self._superior.rename_district(district_name)
+            else:
+                return self._superior.rename_district(district_name)
 
     ###########################################################################
     # TODO Task 3.2 Helper Method
@@ -584,7 +593,8 @@ class Society:
         # , self._head, smaller cid)
         else:
             for i in range(len(all_citizens)):
-                if all_citizens[i].cid < self._head.cid < all_citizens[i + 1].cid:
+                if all_citizens[i].cid < self._head.cid < \
+                        all_citizens[i + 1].cid:
                     all_citizens.insert(i + 1, self._head)
 
         return all_citizens
@@ -662,6 +672,17 @@ class Society:
         >>> o.get_citizens_with_job('Manager') == [c1, c2, c4]
         True
         """
+        # Get all citizens in the society.
+        all_citizens = self.get_all_citizens()
+        citizens_with_job = []
+
+        # Check every citizen's job and add the citizen to the list if it
+        # matches <job>.
+        for citizen in all_citizens:
+            if citizen.job == job:
+                citizens_with_job.append(citizen)
+
+        return citizens_with_job
 
     ###########################################################################
     # TODO Task 2.3
@@ -689,6 +710,36 @@ class Society:
         Precondition:
         - If <cid> is the id of a DistrictLeader, <district_name> must be None
         """
+        # Get the citizen with the <cid>.
+        citizen = self.get_citizen(cid)
+
+        # If the citizen is a DistrictLeader, create a new citizen that is not
+        # a DistrictLeader with the same attributes.
+        if isinstance(citizen, DistrictLeader):
+            new = Citizen(citizen.cid, citizen.manufacturer, citizen.model_year,
+                          citizen.job, citizen.rating)
+        # If the citizen is not a DistrictLeader, create a DistrictLeader.
+        else:
+            new = DistrictLeader(citizen.cid, citizen.manufacturer,
+                                 citizen.model_year,
+                                 citizen.job, citizen.rating, district_name)
+
+        # Get the citizen's superior and subordinates.
+        superior = citizen.get_superior()
+        subordinates = citizen.get_direct_subordinates()
+
+        # Set the new citizen's superior and update the superior's subordinates.
+        if superior is not None:
+            superior.add_subordinate(new)
+            new.set_superior(superior)
+            superior.remove_subordinate(citizen)
+
+        # Update all the citizen's subordinates' new superior.
+        for subordinate in subordinates:
+            subordinate.set_superior(new)
+            new.add_subordinate(subordinate)
+
+        return new
 
     ###########################################################################
     # TODO Task 3.1
@@ -788,6 +839,14 @@ class DistrictLeader(Citizen):
         >>> c2.get_district_name()
         'District A'
         """
+        self.cid = cid
+        self.manufacturer = manufacturer
+        self.model_year = model_year
+        self.job = job
+        self.rating = rating
+        self._district_name = district
+        self._subordinates = []
+        self._superior = None
 
     def get_district_citizens(self) -> List[Citizen]:
         """Return a list of all citizens in this DistrictLeader's district, in
@@ -805,6 +864,35 @@ class DistrictLeader(Citizen):
         >>> c1.get_district_citizens() == [c1, c2, c3]
         True
         """
+        # If the list is empty, return only the district leader
+        if not self._subordinates:
+            return [self]
+
+        # Else, add the district leader and find all the direct and indirect
+        # subordinates (citizens of the district)
+        else:
+            citizens = [self]
+            # Get all direct and indirect subordinates
+            for subordinate in self._subordinates:
+                subordinates = subordinate.get_all_subordinates()
+                subordinates.append(subordinate)
+
+                # Check where to place the subordinate in the list depending
+                # on the leader's cid when only the leader is in the list.
+                if len(citizens) == 1 and subordinates:
+                    if citizens[0].cid < subordinates[0].cid:
+                        citizens.append(subordinates[0])
+                else:
+                    # Else, check where to put the subordinate in the list of
+                    # many citizens.
+                    for i in range(len(subordinates)):
+                        if citizens[-1].cid < subordinates[i].cid:
+                            citizens.append(subordinates[i])
+                        elif citizens[i].cid < subordinates[i].cid < \
+                                citizens[i + 1].cid:
+                            citizens.insert(i + 1, subordinates[i])
+
+            return citizens
 
     ###########################################################################
     # TODO Task 2.2
@@ -812,10 +900,12 @@ class DistrictLeader(Citizen):
     def get_district_name(self) -> str:
         """Return the name of the district that this DistrictLeader leads.
         """
+        return self._district_name
 
     def rename_district(self, district_name: str) -> None:
         """Rename this district leader's district to the given <district_name>.
         """
+        self._district_name = district_name
 
 
 ###########################################################################
