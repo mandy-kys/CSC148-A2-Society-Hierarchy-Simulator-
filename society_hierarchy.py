@@ -492,6 +492,13 @@ class Citizen:
         'Starky Industries'
         """
         # Hint: This can be used as a helper function for `delete_citizen`
+        best_subordinate = self._subordinates[0]
+
+        for subordinate in self._subordinates[1:]:
+            if subordinate.rating > best_subordinate.rating:
+                best_subordinate = subordinate
+
+        return best_subordinate
 
 
 class Society:
@@ -761,6 +768,29 @@ class Society:
         """
         # Note: depending on how you implement this method, PyCharm may warn you
         # that this method 'may be static' -- feel free to ignore this
+        new_district_leader = self.change_citizen_type(
+            citizen.cid, citizen.get_district_name())
+        superior = citizen.get_superior()
+
+        if superior.get_district_name() == citizen.get_district_name() and \
+                isinstance(superior, DistrictLeader):
+            new_citizen = self.change_citizen_type(superior.cid)
+
+            new_subordinates = superior.get_direct_subordinates()
+            old_subordinates = citizen.get_direct_subordinates()
+
+            for subordinate in old_subordinates:
+                new_district_leader.remove_subordinate(subordinate.cid)
+                new_citizen.add_subordinate(subordinate)
+
+            for new_subordinate in new_subordinates:
+                new_district_leader.add_subordinate(new_subordinate)
+                new_citizen.remove_subordinate(new_subordinate.cid)
+
+            new_district_leader.set_superior(superior.get_superior())
+            new_citizen.set_superior(new_district_leader)
+
+        return new_district_leader
 
     def promote_citizen(self, cid: int) -> None:
         """Promote the Citizen with cid <cid> until they either:
@@ -770,6 +800,17 @@ class Society:
 
         Precondition: There is a Citizen with the cid <cid> in this Society.
         """
+        # Get the citizen and its superior.
+        citizen = self.get_citizen(cid)
+        superior = citizen.get_superior()
+
+        # Swap if the Citizen is not a DistrictLeader and has a rating higher
+        # than its superior.
+        if not isinstance(citizen, DistrictLeader) and superior is not None \
+                and superior.rating < citizen.rating:
+            self._swap_up(citizen)
+            # Keep promoting the Citizen.
+            self.promote_citizen(citizen.cid)
 
     ###########################################################################
     # TODO Task 3.2
@@ -787,7 +828,29 @@ class Society:
 
         Precondition: There is a Citizen with the cid <cid> in this Society.
         """
+        citizen = self.get_citizen(cid)
+        superior = citizen.get_superior()
+        subordinates = citizen.get_direct_subordinates()
 
+        if citizen is not self.get_head():
+            for subordinate in subordinates:
+                superior.add_subordinate(subordinate)
+                citizen.remove_subordinate(subordinate.cid)
+                subordinate.set_superior(superior)
+        else:
+            if len(citizen.get_direct_subordinates()) > 0:
+                new_head = citizen.get_highest_rated_subordinate()
+                self.set_head(new_head)
+
+                for subordinate in subordinates:
+                    if subordinate is not new_head:
+                        new_head.add_subordinate(subordinate)
+                        citizen.remove_subordinate(subordinate.cid)
+                        subordinate.set_superior(new_head)
+
+                citizen.remove_subordinate(new_head.cid)
+            else:
+                self._head = None
 
 ###############################################################################
 # TODO Task 2: DistrictLeader
@@ -1038,9 +1101,9 @@ if __name__ == "__main__":
     #
     # import python_ta
     # python_ta.check_all(config={
-    #     'allowed-import-modules': ['typing', '__future__',
-    #                                'python_ta', 'doctest'],
-    #     'disable': ['E9998', 'R0201'],
-    #     'max-args': 7,
-    #     'max-module-lines': 1600
-    # })
+    #      'allowed-import-modules': ['typing', '__future__',
+    #                                 'python_ta', 'doctest'],
+    #      'disable': ['E9998', 'R0201'],
+    #      'max-args': 7,
+    #      'max-module-lines': 1600
+    #  })
