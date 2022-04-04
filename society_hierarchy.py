@@ -232,8 +232,8 @@ class Citizen:
             else:
                 for i in range(len(self._subordinates)):
                     if self._subordinates[i].cid < subordinate.cid < \
-                            self._subordinates[i+1].cid:
-                        self._subordinates.insert(i+1, subordinate)
+                            self._subordinates[i + 1].cid:
+                        self._subordinates.insert(i + 1, subordinate)
 
     def remove_subordinate(self, cid: int) -> None:
         """Remove the subordinate with the ID <cid> from this Citizen's list
@@ -255,11 +255,10 @@ class Citizen:
         >>> c1.get_superior() is None
         True
         """
-        # loop through self._subordinates and fine the subordinate
+        # loop through self._subordinates and find the subordinate
         # with the correct cid
         for i in range(len(self._subordinates)):
             if self._subordinates[i].cid == cid:
-
                 # set this subordinate's superior to None
                 self._subordinates[i]._superior = None
                 # remove this subordinate from self._subordinates
@@ -330,7 +329,9 @@ class Citizen:
             return self
         else:
             for subordinate in self._subordinates:
-                return subordinate.get_citizen(cid)
+                result = subordinate.get_citizen(cid)
+                if result is not None:
+                    return result
 
             # if cid is does not match self or any of its
             # subordinate's cid, return None
@@ -347,12 +348,20 @@ class Citizen:
         >>> c1 = Citizen(1, "Starky Industries", 3024, "Labourer", 50)
         >>> c2 = Citizen(2, "Hookins National Lab", 3024, "Manager", 30)
         >>> c3 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c4 = Citizen(4, "S.T.A.R.R.Y Lab", 3010, "Commander", 65)
+        >>> c5 = Citizen(5, "S.T.A.R.R.Y Lab", 3010, "Commander", 55)
+        >>> c5.become_subordinate_to(c1)
+        >>> c4.become_subordinate_to(c1)
         >>> c1.become_subordinate_to(c2)
         >>> c2.become_subordinate_to(c3)
         >>> c3.get_all_subordinates()[0].cid
         1
         >>> c3.get_all_subordinates()[1].cid
         2
+        >>> c3.get_all_subordinates()[2].cid
+        4
+        >>> c3.get_all_subordinates()[3].cid
+        5
         """
         # Note: This method must call itself recursively
 
@@ -585,25 +594,7 @@ class Society:
         >>> o.get_all_citizens() == [c1, c2, c3, c4, c5, c6]
         True
         """
-        all_citizens = self._head.get_all_subordinates()
-
-        # if the list is empty, append self._head
-        if not all_citizens:
-            all_citizens.append(self._head)
-
-        # if all ids in the list are smaller than self._head id,
-        # append self._head
-        elif all_citizens[-1].cid < self._head.cid:
-            all_citizens.append(self._head)
-
-        # else, insert self._head in the correct order (bigger cid
-        # , self._head, smaller cid)
-        else:
-            for i in range(len(all_citizens)):
-                if all_citizens[i].cid < self._head.cid < \
-                        all_citizens[i + 1].cid:
-                    all_citizens.insert(i + 1, self._head)
-
+        all_citizens = merge([self._head],self._head.get_all_subordinates())
         return all_citizens
 
     def add_citizen(self, citizen: Citizen, superior_id: int = None) -> None:
@@ -642,13 +633,6 @@ class Society:
             # if the society already has a head, make the old head the
             # subordinate of the citizen.
             if self._head:
-
-                # The old society head is the ONE AND ONLY subordinate,
-                # so first remove all the existing
-                # subordinates for citizen.
-                old_subordinates = citizen.get_all_subordinates()
-                for i in old_subordinates:
-                    citizen.remove_subordinate(i.cid)
 
                 # Make the original society head the subordinate of citizen.
                 citizen.add_subordinate(self._head)
@@ -737,14 +721,15 @@ class Society:
 
         # Set the new citizen's superior and update the superior's subordinates.
         if superior is not None:
+            superior.remove_subordinate(citizen.cid)
             superior.add_subordinate(new)
             new.set_superior(superior)
-            superior.remove_subordinate(citizen)
 
         # Update all the citizen's subordinates' new superior.
-        for subordinate in subordinates:
-            subordinate.set_superior(new)
-            new.add_subordinate(subordinate)
+        if subordinates:
+            for subordinate in subordinates:
+                subordinate.set_superior(new)
+                new.add_subordinate(subordinate)
 
         return new
 
@@ -768,29 +753,37 @@ class Society:
         """
         # Note: depending on how you implement this method, PyCharm may warn you
         # that this method 'may be static' -- feel free to ignore this
-        new_district_leader = self.change_citizen_type(
-            citizen.cid, citizen.get_district_name())
-        superior = citizen.get_superior()
+        new_superior = citizen
+        new_citizen = citizen.get_superior()
 
-        if superior.get_district_name() == citizen.get_district_name() and \
-                isinstance(superior, DistrictLeader):
-            new_citizen = self.change_citizen_type(superior.cid)
+        # if the old superior is a DistrictLeader, change both's type
+        if isinstance(new_citizen, DistrictLeader):
+            self.change_citizen_type(new_superior.cid, new_citizen.get_district_name())
+            self.change_citizen_type(new_citizen.cid)
 
-            new_subordinates = superior.get_direct_subordinates()
-            old_subordinates = citizen.get_direct_subordinates()
+        # Swap their job
+        new_superior.job, new_citizen.job = new_citizen.job, new_superior.job
 
+        new_subordinates = new_citizen.get_direct_subordinates()
+        old_subordinates = new_superior.get_direct_subordinates()
+
+        # Swap their subordinates
+        if old_subordinates:
             for subordinate in old_subordinates:
-                new_district_leader.remove_subordinate(subordinate.cid)
+                new_superior.remove_subordinate(subordinate.cid)
+                if subordinate.cid == new_superior.cid:  # Avoids new_citizen from adding itself.
+                    continue
                 new_citizen.add_subordinate(subordinate)
 
-            for new_subordinate in new_subordinates:
-                new_district_leader.add_subordinate(new_subordinate)
-                new_citizen.remove_subordinate(new_subordinate.cid)
+        for new_subordinate in new_subordinates:
+            new_superior.add_subordinate(new_subordinate)
+            new_citizen.remove_subordinate(new_subordinate.cid)
 
-            new_district_leader.set_superior(superior.get_superior())
-            new_citizen.set_superior(new_district_leader)
+        # Change their superior
+        new_superior.set_superior(new_citizen.get_superior())
+        new_citizen.set_superior(new_superior)
 
-        return new_district_leader
+        return new_superior
 
     def promote_citizen(self, cid: int) -> None:
         """Promote the Citizen with cid <cid> until they either:
@@ -833,10 +826,12 @@ class Society:
         subordinates = citizen.get_direct_subordinates()
 
         if citizen is not self.get_head():
-            for subordinate in subordinates:
-                superior.add_subordinate(subordinate)
-                citizen.remove_subordinate(subordinate.cid)
-                subordinate.set_superior(superior)
+            if subordinates:  # if subordinates is not empty
+                for subordinate in subordinates:
+                    superior.add_subordinate(subordinate)
+                    citizen.remove_subordinate(subordinate.cid)
+                    subordinate.set_superior(superior)
+            superior.remove_subordinate(cid)
         else:
             if len(citizen.get_direct_subordinates()) > 0:
                 new_head = citizen.get_highest_rated_subordinate()
@@ -851,6 +846,8 @@ class Society:
                 citizen.remove_subordinate(new_head.cid)
             else:
                 self._head = None
+
+
 
 ###############################################################################
 # TODO Task 2: DistrictLeader
