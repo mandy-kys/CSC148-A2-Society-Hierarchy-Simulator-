@@ -770,29 +770,46 @@ class Society:
         # that this method 'may be static' -- feel free to ignore this
         superior = citizen.get_superior()
 
+        # Switch the citizen types if the superior is a DistrictLeader.
         if isinstance(superior, DistrictLeader) and \
                 superior.get_district_name() == citizen.get_district_name():
-            citizen = self.change_citizen_type(
-                citizen.cid, superior.get_district_name())
+            citizen = self.change_citizen_type(citizen.cid,
+                                               superior.get_district_name())
             superior = self.change_citizen_type(superior.cid)
 
+        # Remove the citizen from the superior's subordinates.
+        superior.remove_subordinate(citizen.cid)
+
+        # Get the subordinates of the citizen and superior.
         new_subordinates = superior.get_direct_subordinates()
         old_subordinates = citizen.get_direct_subordinates()
 
+        # Switch the subordinates of the citizen to the superior's subordinates.
         for subordinate in old_subordinates:
             superior.add_subordinate(subordinate)
+            subordinate.set_superior(superior)
             citizen.remove_subordinate(subordinate.cid)
 
+        # Switch the superior's subordinates to the citizen's subordinates.
         for new_subordinate in new_subordinates:
             citizen.add_subordinate(new_subordinate)
+            new_subordinate.set_superior(citizen)
             superior.remove_subordinate(new_subordinate.cid)
 
+        # Switch the superior's superior to the citizen's superior if there is
+        # one.
         if superior.get_superior():
             citizen.set_superior(superior.get_superior())
+        # Else, the superior was the head of the society and the citizen is now
+        # the head.
         else:
             self.set_head(citizen)
+            citizen.set_superior(None)
 
+        # The previous superior's superior is now the citizen and the superior
+        # is a subordinate of the citizen.
         superior.set_superior(citizen)
+        citizen.add_subordinate(superior)
 
         return citizen
 
