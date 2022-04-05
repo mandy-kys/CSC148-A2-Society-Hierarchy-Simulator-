@@ -745,89 +745,47 @@ class Society:
         new_superior = citizen
         new_citizen = citizen.get_superior()
 
-        # if the old superior is a DistrictLeader, change both's type
+        # if the old superior is a DistrictLeader, change both types.
         if isinstance(new_citizen, DistrictLeader):
             self.change_citizen_type(new_superior.cid,
                                      new_citizen.get_district_name())
             self.change_citizen_type(new_citizen.cid)
 
-            # Swap their job
+        # Swap their job.
         new_superior.job, new_citizen.job = new_citizen.job, new_superior.job
 
+        # Remove the new superior from the new citizen's subordinates.
+        new_citizen.remove_subordinate(new_superior.cid)
+
+        # Get old and new subordinates.
         new_subordinates = new_citizen.get_direct_subordinates()
         old_subordinates = new_superior.get_direct_subordinates()
 
-        # Swap their subordinates
-        if old_subordinates:
-            for subordinate in old_subordinates:
-                new_superior.remove_subordinate(subordinate.cid)
-                if subordinate.cid == new_superior.cid:
-                    # Avoids new_citizen from adding itself.
-                    continue
-                new_citizen.add_subordinate(subordinate)
+        # Swap their subordinates.
+        for subordinate in old_subordinates:
+            new_superior.remove_subordinate(subordinate.cid)
+            new_citizen.add_subordinate(subordinate)
 
         for new_subordinate in new_subordinates:
             new_superior.add_subordinate(new_subordinate)
             new_citizen.remove_subordinate(new_subordinate.cid)
 
-        # Change their superior
-        new_superior.set_superior(new_citizen.get_superior())
-        new_citizen.set_superior(new_superior)
-
-        return new_superior
-
-
-
-
-
-
-
-
-
-
-        superior = citizen.get_superior()
-
-        # Switch the citizen types if the superior is a DistrictLeader.
-        if isinstance(superior, DistrictLeader):
-            citizen = self.change_citizen_type(citizen.cid,
-                                               superior.get_district_name())
-            superior = self.change_citizen_type(superior.cid)
-
-        # Remove the citizen from the superior's subordinates.
-        superior.remove_subordinate(citizen.cid)
-
-        # Get the subordinates of the citizen and superior.
-        new_subordinates = superior.get_direct_subordinates()
-        old_subordinates = citizen.get_direct_subordinates()
-
-        # Switch the subordinates of the citizen to the superior's subordinates.
-        for subordinate in old_subordinates:
-            superior.add_subordinate(subordinate)
-            subordinate.set_superior(superior)
-            citizen.remove_subordinate(subordinate.cid)
-
-        # Switch the superior's subordinates to the citizen's subordinates.
-        for new_subordinate in new_subordinates:
-            citizen.add_subordinate(new_subordinate)
-            new_subordinate.set_superior(citizen)
-            superior.remove_subordinate(new_subordinate.cid)
-
         # Switch the superior's superior to the citizen's superior if there is
         # one.
-        if superior.get_superior():
-            citizen.set_superior(superior.get_superior())
+        if new_citizen.get_superior():
+            new_superior.set_superior(new_citizen.get_superior())
         # Else, the superior was the head of the society and the citizen is now
         # the head.
         else:
-            self.set_head(citizen)
-            citizen.set_superior(None)
+            self.set_head(new_superior)
+            new_superior.set_superior(None)
 
-        # The previous superior's superior is now the citizen and the superior
-        # is a subordinate of the citizen.
-        superior.set_superior(citizen)
-        citizen.add_subordinate(superior)
+        # Set the new citizen's superior to the new superior and add the new
+        # citizen to the new superior's subordinates.
+        new_citizen.set_superior(new_superior)
+        new_superior.add_subordinate(new_citizen)
 
-        return citizen
+        return new_superior
 
     def promote_citizen(self, cid: int) -> None:
         """Promote the Citizen with cid <cid> until they either:
