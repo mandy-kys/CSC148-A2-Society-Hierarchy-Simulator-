@@ -347,30 +347,23 @@ class Citizen:
         """Return a new list of all of the subordinates of this Citizen in
         order of ascending IDs.
 
-        >>> s = Society()
-        >>> c1 = Citizen(1, 'Citizen 1', 3001, 'Big boss', 10)
-        >>> s.add_citizen(c1)
-        >>> c2 = DistrictLeader(2, 'Citizen 2', 3002, 'Bank robber', 19, 'D2')
-        >>> c3 = Citizen(3, 'Citizen 3', 3003, 'Cook', 82)
-        >>> c4 = Citizen(4, 'Citizen 4', 3004, 'Cook', 5)
-        >>> s.add_citizen(c2, 1)
-        >>> s.add_citizen(c3, 1)
-        >>> s.add_citizen(c4, 1)
-        >>> c5 = Citizen(5, 'Citizen 5', 3005, 'Farmer', 101)
-        >>> c6 = Citizen(6, 'Citizen 6', 3006, 'Coach', 56)
-        >>> s.add_citizen(c5, 2)
-        >>> s.add_citizen(c6, 2)
-        >>> c8 = Citizen(8, 'Citizen 8', 3008, 'Farmer', 22)
-        >>> c9 = Citizen(9, 'Citizen 9', 3009, 'Farmer', 22)
-        >>> c10 = Citizen(10, 'Citizen 10', 3010, 'Driver', 22)
-        >>> s.add_citizen(c8, 6)
-        >>> s.add_citizen(c9, 6)
-        >>> s.add_citizen(c10, 6)
-        >>> c7 = DistrictLeader(7, 'Citizen 7', 3007, 'Builder', 58, 'D7')
-        >>> s.add_citizen(c7, 4)
-        >>> result = [c.cid for c in c1.get_all_subordinates()]
-        >>> assert result == [2, 3, 4, 5, 6, 7, 8, 9, 10]
-        True
+        >>> c1 = Citizen(1, "Starky Industries", 3024, "Labourer", 50)
+        >>> c2 = Citizen(2, "Hookins National Lab", 3024, "Manager", 30)
+        >>> c3 = Citizen(3, "S.T.A.R.R.Y Lab", 3010, "Commander", 60)
+        >>> c4 = Citizen(4, "S.T.A.R.R.Y Lab", 3010, "Commander", 65)
+        >>> c5 = Citizen(5, "S.T.A.R.R.Y Lab", 3010, "Commander", 55)
+        >>> c5.become_subordinate_to(c1)
+        >>> c4.become_subordinate_to(c1)
+        >>> c1.become_subordinate_to(c2)
+        >>> c2.become_subordinate_to(c3)
+        >>> c3.get_all_subordinates()[0].cid
+        1
+        >>> c3.get_all_subordinates()[1].cid
+        2
+        >>> c3.get_all_subordinates()[2].cid
+        4
+        >>> c3.get_all_subordinates()[3].cid
+        5
         """
         # Note: This method must call itself recursively
 
@@ -764,13 +757,13 @@ class Society:
         new_superior = citizen
         new_citizen = citizen.get_superior()
 
-        # if the old superior is a DistrictLeader, change both types.
+        # if the old superior is a DistrictLeader, change both's type
         if isinstance(new_citizen, DistrictLeader):
-            self.change_citizen_type(new_superior.cid,
-                                     new_citizen.get_district_name())
-            self.change_citizen_type(new_citizen.cid)
+            new_superior = self.change_citizen_type(
+                new_superior.cid, new_citizen.get_district_name())
+            new_citizen = self.change_citizen_type(new_citizen.cid)
 
-        # Swap their job.
+        # Swap their job
         new_superior.job, new_citizen.job = new_citizen.job, new_superior.job
 
         # Remove the new superior from the new citizen's subordinates.
@@ -780,29 +773,28 @@ class Society:
         new_subordinates = new_citizen.get_direct_subordinates()
         old_subordinates = new_superior.get_direct_subordinates()
 
-        # Swap their subordinates.
-        for subordinate in old_subordinates:
-            new_superior.remove_subordinate(subordinate.cid)
-            new_citizen.add_subordinate(subordinate)
+        # Swap their subordinates
+        if old_subordinates:
+            for subordinate in old_subordinates:
+                new_superior.remove_subordinate(subordinate.cid)
+                new_citizen.add_subordinate(subordinate)
 
         for new_subordinate in new_subordinates:
-            new_superior.add_subordinate(new_subordinate)
             new_citizen.remove_subordinate(new_subordinate.cid)
+            new_superior.add_subordinate(new_subordinate)
 
         # Switch the superior's superior to the citizen's superior if there is
         # one.
         if new_citizen.get_superior():
-            new_superior.set_superior(new_citizen.get_superior())
+            new_superior.become_subordinate_to(new_citizen.get_superior())
         # Else, the superior was the head of the society and the citizen is now
         # the head.
         else:
             self.set_head(new_superior)
             new_superior.set_superior(None)
 
-        # Set the new citizen's superior to the new superior and add the new
-        # citizen to the new superior's subordinates.
-        new_citizen.set_superior(new_superior)
-        new_superior.add_subordinate(new_citizen)
+        # Change their superior
+        new_citizen.become_subordinate_to(new_superior)
 
         return new_superior
 
