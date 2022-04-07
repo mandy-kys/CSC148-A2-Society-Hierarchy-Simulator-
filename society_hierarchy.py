@@ -423,7 +423,8 @@ class Citizen:
         """
         # Note: This method must call itself recursively
         # if this citizen or the citizen being compared is the society head
-        if self.get_society_head().cid == self.cid or cid:
+        if self.get_society_head().cid == self.cid or \
+                self.get_society_head().cid == cid:
             return self.get_society_head()
 
         # if this citizen is the superior of the cid
