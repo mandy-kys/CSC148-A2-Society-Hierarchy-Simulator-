@@ -960,28 +960,19 @@ class DistrictLeader(Citizen):
         # Else, add the district leader and find all the direct and indirect
         # subordinates (citizens of the district)
         else:
-            citizens = [self]
-            # Get all direct and indirect subordinates
-            for subordinate in self._subordinates:
-                subordinates = subordinate.get_all_subordinates()
-                subordinates.append(subordinate)
+            ordered_citizens = []
 
-                # Check where to place the subordinate in the list depending
-                # on the leader's cid when only the leader is in the list.
-                if len(citizens) == 1 and subordinates:
-                    if citizens[0].cid < subordinates[0].cid:
-                        citizens.append(subordinates[0])
-                else:
-                    # Else, check where to put the subordinate in the list of
-                    # many citizens.
-                    for i in range(len(subordinates)):
-                        if citizens[-1].cid < subordinates[i].cid:
-                            citizens.append(subordinates[i])
-                        elif citizens[i].cid < subordinates[i].cid < \
-                                citizens[i + 1].cid:
-                            citizens.insert(i + 1, subordinates[i])
+            # Order all the citizens' cids in the district and
+            # this DistrictLeader.
+            citizens_cid = merge([self.cid], [subordinate.cid for
+                                              subordinate in
+                                              self.get_all_subordinates()])
 
-            return citizens
+            # Order the Citizens according to the ordered list of cids.
+            for citizen_cid in citizens_cid:
+                ordered_citizens.append(self.get_citizen(citizen_cid))
+
+            return ordered_citizens
 
     ###########################################################################
     # TODO Task 2.2
