@@ -883,14 +883,8 @@ class DistrictLeader(Citizen):
         >>> c2.get_district_name()
         'District A'
         """
-        self.cid = cid
-        self.manufacturer = manufacturer
-        self.model_year = model_year
-        self.job = job
-        self.rating = rating
+        Citizen.__init__(self, cid, manufacturer, model_year, job, rating)
         self._district_name = district
-        self._subordinates = []
-        self._superior = None
 
     def get_district_citizens(self) -> List[Citizen]:
         """Return a list of all citizens in this DistrictLeader's district, in
