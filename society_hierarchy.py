@@ -407,8 +407,7 @@ class Citizen:
         """
         # Note: This method must call itself recursively
         # if this citizen or the citizen being compared is the society head
-        if self.get_society_head().cid == self.cid or \
-                self.get_society_head().cid == cid:
+        if self.get_society_head().cid in (self.cid, cid):
             return self.get_society_head()
 
         # if this citizen is the superior of the cid
@@ -1064,9 +1063,9 @@ if __name__ == "__main__":
     #
     # import python_ta
     # python_ta.check_all(config={
-    #      'allowed-import-modules': ['typing', '__future__',
-    #                                 'python_ta', 'doctest'],
-    #      'disable': ['E9998', 'R0201'],
-    #      'max-args': 7,
-    #      'max-module-lines': 1600
-    #  })
+    # 'allowed-import-modules': ['typing', '__future__',
+    # 'python_ta', 'doctest'],
+    # 'disable': ['E9998', 'R0201'],
+    # 'max-args': 7,
+    # 'max-module-lines': 1600
+    # })
